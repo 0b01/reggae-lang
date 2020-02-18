@@ -1,0 +1,49 @@
+ext std::stdio::getline;
+
+fn eval(line: &str) {
+    let toks = line.words(); // stream
+    let ops = ["T", "F", "&", "|", "!", "^", "=>"];
+    let vars = toks.filter(|_| !ops.contains(_))
+                   .map(|tok| (tok, &true))
+		   .collect();
+    let graph = create_graph(toks, vars);
+    set_vars(0, &vars, graph);
+}
+
+fn set_vars(pos: usize, vars: &{str => &bool}, graph: &bool) {
+    if pos == vars.len() {
+        vars.for_each(|var| print,!("{}", var!));
+	println,!("{}", graph!);
+    } else {
+        vars[pos].set!(false);
+        set_vars(pos + 1);
+        vars[pos].set!(true);
+        set_vars(pos + 1);
+    }
+}
+
+fn create_graph(toks: &[str], vars: &{str => &bool}) -> &bool {
+    let stack = [];
+    for tok in toks {
+        match toks {
+	    "T" => stack.push(demot true),
+	    "F" => stack.push(demot false),
+	    "|" => stack.push(stack.pop() || stack.pop()),
+	    "&" => stack.push(stack.pop() && stack.pop()),
+	    "|" => stack.push(stack.pop() || stack.pop()),
+	    "!" => stack.push(!stack.pop()),
+	    "^" => stack.push(stack.pop() ^ stack.pop()),
+	    "=>" => stack.push(!stack.pop() || stack.pop()),
+            x if vars.contains(x) => stack.push(vars[x]),
+	    _ => panic,!("parse error"),
+        }
+    }
+    stack[0]
+}
+
+fn main() {
+    println,!("input boolean expression: ");
+    loop {
+        eval!(getline()?);
+    }
+}

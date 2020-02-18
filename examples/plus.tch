@@ -1,0 +1,15 @@
+struct Cell(u8);
+
+fn plus(a: &Cell, b: &Cell) -> Cell {
+    a + b
+}
+
+fn main() { // main is an eager function
+    let a = Cell(1);
+    let b = Cell(2);
+    let c = Cell(2); // declare structs
+
+    let d = mot plus(&a, &b); // let's motivate a lazy function
+    let d = plus(&a, &b)!; // or use suffix position
+    plus(d, c) // returned thunk is motivated at end of an eager scope
+}
