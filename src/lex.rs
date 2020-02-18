@@ -3,10 +3,12 @@ use std::iter::Peekable;
 use std::ops::DerefMut;
 
 /// Represents a primitive syntax token.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Binary,
+    Bang,
     Comma,
+    Colon,
     Comment,
     Fn,
     Else,
@@ -16,13 +18,21 @@ pub enum Token {
     Ident(String),
     If,
     In,
-    LParen,
     Number(f64),
     Op(char),
+    LBrace,
+    RBrace,
+    LParen,
     RParen,
     Then,
+    Mot,
+    Lru,
+    Mru,
+    Lfu,
+    Mfu,
     Unary,
-    Var
+    Var,
+    Str(String),
 }
 
 /// Defines an error encountered by the `Lexer`.
@@ -102,7 +112,23 @@ impl<'a> Lexer<'a> {
         let result = match next.unwrap() {
             '(' => Ok(Token::LParen),
             ')' => Ok(Token::RParen),
+            '{' => Ok(Token::LBrace),
+            '}' => Ok(Token::RBrace),
             ',' => Ok(Token::Comma),
+            '!' => Ok(Token::Bang),
+            ':' => Ok(Token::Colon),
+            '"' => {
+                let mut value = String::new();
+
+                while let Ok(ch) = self.read_escaped_char() {
+                    if ch != '"' {
+                        value.push(ch);
+                    } else if ch == '"' {
+                        return Ok(Token::Str(value));
+                    }
+                }
+                Err(LexError::new("unclosed string"))
+            },
 
             '.' | '0' ..= '9' => {
                 // Parse number literal
@@ -136,6 +162,18 @@ impl<'a> Lexer<'a> {
                         }
                     }
                     Ok(Token::Comment)
+                } else if let Some('*') = chars.peek() {
+                    loop {
+                        let ch = chars.next();
+                        pos += 1;
+                        if ch == Some('*') {
+                            if let Some('/') = chars.peek() {
+                                let _ = chars.next();
+                                break;
+                            }
+                        }
+                    }
+                    Ok(Token::Comment)
                 } else {
                     Ok(Token::Op('/'))
                 }
@@ -151,7 +189,7 @@ impl<'a> Lexer<'a> {
                     };
 
                     // A word-like identifier only contains underscores and alphanumeric characters.
-                    if ch != '_' && !ch.is_alphanumeric() {
+                    if ch != '_' && ch != ',' && !ch.is_alphanumeric() {
                         break;
                     }
 
@@ -170,6 +208,11 @@ impl<'a> Lexer<'a> {
                     "unary" => Ok(Token::Unary),
                     "binary" => Ok(Token::Binary),
                     "var" => Ok(Token::Var),
+                    "mot" => Ok(Token::Mot),
+                    "lru" => Ok(Token::Lru),
+                    "mru" => Ok(Token::Mru),
+                    "lfu" => Ok(Token::Lfu),
+                    "mfu" => Ok(Token::Mfu),
 
                     ident => Ok(Token::Ident(ident.to_string()))
                 }
@@ -185,6 +228,37 @@ impl<'a> Lexer<'a> {
         self.pos = pos;
 
         result
+    }
+
+    fn read_escaped_char(&mut self) -> Result<char, LexError> {
+        if let Some(ch) = self.chars.next() {
+            if ch == '\\' {
+                let ch = self.chars.next().ok_or(LexError::new("no input"))?;
+
+                match ch {
+                    '\\' => Ok('\\'),
+                    'n' => Ok('\n'),
+                    't' => Ok('\t'),
+                    'r' => Ok('\r'),
+                    '\"' => Ok('\"'),
+                    '\'' => Ok('\''),
+                    '0' => Ok('\0'),
+
+                    'e' => unimplemented!(),
+                    'v' => unimplemented!(),
+                    'x' => unimplemented!(),
+                    'u' => unimplemented!(),
+
+                    _ => {
+                        Err(LexError::new("unknown escape char"))
+                    }
+                }
+            } else {
+                Ok(ch)
+            }
+        } else {
+            Err(LexError::new("no input"))
+        }
     }
 }
 

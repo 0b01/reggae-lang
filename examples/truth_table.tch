@@ -26,8 +26,8 @@ fn create_graph(toks: &[str], vars: &{str => &bool}) -> &bool {
     let stack = [];
     for tok in toks {
         match toks {
-	    "T" => stack.push(demot true),
-	    "F" => stack.push(demot false),
+	    "T" => stack.push(&true),
+	    "F" => stack.push(&false),
 	    "|" => stack.push(stack.pop() || stack.pop()),
 	    "&" => stack.push(stack.pop() && stack.pop()),
 	    "|" => stack.push(stack.pop() || stack.pop()),

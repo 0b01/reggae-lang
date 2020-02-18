@@ -1,6 +1,6 @@
 // cache eviction policies: lru, mru, lfu, mfu
 
-lru fn factorial(n: &u64) -> u64 {
+lru!20 fn factorial(n: &u64) -> u64 {
     match n {
         0 => 1,
 	_ => n * factorial(n-1)
